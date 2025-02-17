@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Footer, Navbar } from "../components";
 import { Link, useNavigate } from "react-router-dom";
 import SmallLoader from "../components/SmallLoader";
-import { supabase } from "../supabaseClient"; // Ensure you have Supabase client set up
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -10,13 +9,15 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "buyer", // Default to buyer
+    role: "User",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
 
+  // Regex for password validation
   const passwordRegex =
     /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
@@ -27,6 +28,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Password validation
     if (!passwordRegex.test(formData.password)) {
       setError(
         "Password must be at least 8 characters long, contain a number, a letter, and a special character."
@@ -35,48 +37,50 @@ const Register = () => {
       return;
     }
 
+    // Check if passwords match
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       setSuccess("");
       return;
     }
 
+    // Send request to server
     try {
       setIsLoading(true);
-
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (authError) {
-        setIsLoading(false);
-        setError(authError.message);
-        return;
-      }
-
-      // Store user role and full name in the Supabase users table
-      const { error: insertError } = await supabase.from("users").insert([
+      const response = await fetch(
+        "https://pet-selling-server.vercel.app/auth/register",
         {
-          id: authData.user.id,
-          full_name: formData.fullName,
-          email: formData.email,
-          user_type: formData.role,
-        },
-      ]);
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            role: formData.role,
+          }),
+        }
+      );
 
-      if (insertError) {
+      if (!response.ok) {
+        const { message } = await response.json();
+        console.log("response not ok message", message);
         setIsLoading(false);
-        setError("Failed to save user data.");
+        setError(message);
         return;
       }
 
+      await response.json();
       setIsLoading(false);
       setSuccess("Registration successful!");
 
+      // Redirect to login page after a short delay
       setTimeout(() => navigate("/login"), 1500);
+
+      setError("");
     } catch (err) {
+      console.error(err.message);
       setIsLoading(false);
       setError("Failed to register user. Please try again.");
     }
@@ -127,8 +131,8 @@ const Register = () => {
                   onChange={handleChange}
                   required
                 >
-                  <option value="buyer">Buyer</option>
-                  <option value="seller">Seller</option>
+                  <option value="User">User</option>
+                  <option value="Seller">Seller</option>
                 </select>
               </div>
               <div className="form my-3">

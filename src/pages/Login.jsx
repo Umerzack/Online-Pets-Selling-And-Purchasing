@@ -20,9 +20,10 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
     try {
-      setIsLoading(true);
       const response = await fetch(
         "https://pet-selling-server.vercel.app/auth/login",
         {
@@ -34,19 +35,24 @@ const Login = () => {
         }
       );
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("login response ok", data);
-
-        // Store the user data in localStorage
-        login(data.user);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setIsLoading(false);
-        navigate("/"); // Redirect to homepage or dashboard
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
         setIsLoading(false);
         setError(errorData.error || "Login failed. Please try again.");
+        return;
+      }
+
+      const data = await response.json();
+      login(data.user);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("role", data.user.role); // Store user role
+      setIsLoading(false);
+
+      // Redirect based on role
+      if (data.user.role === "Seller") {
+        navigate("/seller-dashboard");
+      } else {
+        navigate("/");
       }
     } catch (err) {
       setIsLoading(false);

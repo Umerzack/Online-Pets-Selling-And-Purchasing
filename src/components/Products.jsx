@@ -18,7 +18,7 @@ const Products = () => {
     const fetchProducts = async () => {
       try {
         const response = await fetch(
-          "https://pet-selling-server.vercel.app/products"
+          "https://pet-selling-and-purchasing-server.vercel.app/products"
         );
 
         const data = await response.json();
